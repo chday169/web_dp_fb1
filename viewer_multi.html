@@ -1,0 +1,1492 @@
+<!-- viewer_multi.html -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 多媒體教材中心 | CHDAY169 整合式PDF與影片播放器</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
+  </script>
+  <style>
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* 標籤頁樣式 */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #4a6fa5;
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+      padding: 12px 24px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-btn.active {
+      background: #4a6fa5;
+      color: white;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* 頁面頭部樣式 */
+    .page-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      background: linear-gradient(135deg, #4a6fa5 0%, #6b8cbc 100%);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .page-header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+    
+    .subtitle {
+      margin-top: 10px;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    
+    /* 整合通知 */
+    .integration-notice {
+      background: linear-gradient(135deg, #d4edda, #c3e6cb);
+      border-left: 5px solid #28a745;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      color: #155724;
+    }
+    
+    /* PDF閱讀器樣式 */
+    .pdf-viewer {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .pdf-sidebar {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 1px solid #e9ecef;
+    }
+    
+    .pdf-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .pdf-canvas-container {
+      background: #f5f5f5;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #pdfCanvas {
+      max-width: 100%;
+      max-height: 800px;
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      background: white;
+    }
+    
+    /* 影片播放器樣式 */
+    .video-viewer {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .video-player-container {
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #videoPlayer {
+      width: 100%;
+      height: 500px;
+      display: block;
+    }
+    
+    /* 拖放區域樣式 */
+    .drop-zone {
+      border: 3px dashed #4a6fa5;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      margin-bottom: 20px;
+    }
+    
+    .drop-zone:hover {
+      background: #e9ecef;
+      border-color: #3a5a8c;
+    }
+    
+    .drop-zone.dragover {
+      background: #d0e1ff;
+      border-color: #2a4a7c;
+    }
+    
+    /* 檔案列表樣式 */
+    .file-list {
+      list-style: none;
+      padding: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+    }
+    
+    .file-list li {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .file-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .file-list li:hover {
+      background: #e9ecef;
+    }
+    
+    .file-list li.active {
+      background: #4a6fa5;
+      color: white;
+    }
+    
+    .file-icon {
+      font-size: 1.2rem;
+    }
+    
+    /* Scratch 教材整合區塊 */
+    .scratch-integration {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 30px 0;
+      border: 1px solid #dee2e6;
+    }
+    
+    .scratch-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .category-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 1px solid #dee2e6;
+      cursor: pointer;
+    }
+    
+    .category-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      border-color: #4a6fa5;
+    }
+    
+    /* 按鈕樣式 */
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: #4a6fa5;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #3a5a8c;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #545b62;
+      transform: translateY(-2px);
+    }
+    
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #218838;
+      transform: translateY(-2px);
+    }
+    
+    .btn-outline {
+      background: white;
+      color: #4a6fa5;
+      border: 2px solid #4a6fa5;
+    }
+    
+    .btn-outline:hover {
+      background: #4a6fa5;
+      color: white;
+    }
+    
+    /* YouTube 整合區塊 */
+    .youtube-integration {
+      background: linear-gradient(135deg, #ffebee, #ffcdd2);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 30px 0;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .youtube-videos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .youtube-card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      transition: all 0.3s ease;
+      border: 1px solid #dee2e6;
+      cursor: pointer;
+    }
+    
+    .youtube-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      border-color: #ff0000;
+    }
+    
+    .youtube-thumbnail {
+      width: 100%;
+      height: 140px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    
+    .youtube-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* 狀態訊息 */
+    .status-message {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #666;
+      border: 1px dashed #dee2e6;
+    }
+    
+    /* 載入動畫 */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4a6fa5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* 頁腳樣式 */
+    .page-footer {
+      margin-top: 50px;
+      padding: 30px;
+      text-align: center;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-top: 3px solid #4a6fa5;
+    }
+    
+    .navigation-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .footer-info {
+      color: #666;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    
+    /* 麵包屑導航 */
+    .breadcrumb {
+      margin-bottom: 25px;
+      padding: 12px 18px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      border: 1px solid #e9ecef;
+    }
+    
+    .breadcrumb a {
+      color: #4a6fa5;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .breadcrumb span {
+      color: #666;
+    }
+    
+    /* 控制列 */
+    .controls-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    .page-info {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
+      min-width: 150px;
+      text-align: center;
+    }
+    
+    .zoom-info {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
+      min-width: 100px;
+      text-align: center;
+    }
+    
+    /* 響應式設計 */
+    @media (max-width: 992px) {
+      .pdf-viewer,
+      .video-viewer {
+        grid-template-columns: 1fr;
+      }
+      
+      .pdf-sidebar {
+        order: 2;
+      }
+      
+      .pdf-canvas-container,
+      .video-player-container {
+        order: 1;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .tabs {
+        flex-direction: column;
+      }
+      
+      .tab-btn {
+        width: 100%;
+        border-radius: 8px;
+        margin-bottom: 5px;
+      }
+      
+      #videoPlayer {
+        height: 300px;
+      }
+      
+      .navigation-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .btn {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .page-header h1 {
+        font-size: 1.8rem;
+      }
+      
+      .scratch-categories,
+      .youtube-videos {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="container">
+  <header class="page-header">
+    <h1>📚 多媒體教材中心</h1>
+    <p class="subtitle">整合式PDF閱讀器與影片播放器 - 支援拖放上傳與線上內容</p>
+  </header>
+
+  <!-- 整合通知 -->
+  <div class="integration-notice">
+    <strong>🎉 新功能整合完成！</strong> 本頁面已整合原先的 Scratch 教材瀏覽器和 YouTube 影片播放器，提供統一的多媒體體驗。
+  </div>
+
+  <!-- 導航麵包屑 -->
+  <nav class="breadcrumb">
+    <a href="index.html">首頁</a> &gt; 
+    <a href="viewer_multi.html">多媒體教材中心</a> &gt; 
+    <span id="current-tab-name">PDF閱讀器</span>
+  </nav>
+
+  <!-- 標籤頁導航 -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="pdf-tab" onclick="switchTab('pdf')">📄 PDF閱讀器</button>
+    <button class="tab-btn" data-tab="video-tab" onclick="switchTab('video')">🎥 影片播放器</button>
+    <button class="tab-btn" data-tab="scratch-tab" onclick="switchTab('scratch')">🎨 Scratch教材</button>
+    <button class="tab-btn" data-tab="youtube-tab" onclick="switchTab('youtube')">📺 YouTube影片</button>
+    <button class="tab-btn" data-tab="upload-tab" onclick="switchTab('upload')">📤 檔案上傳</button>
+  </div>
+
+  <!-- PDF閱讀器標籤頁 -->
+  <div id="pdf-tab" class="tab-content active">
+    <div class="pdf-viewer">
+      <!-- 左側控制面板 -->
+      <div class="pdf-sidebar">
+        <h3>📚 PDF檔案列表</h3>
+        
+        <!-- 拖放區域 -->
+        <div class="drop-zone" id="pdfDropZone">
+          <div style="font-size: 3em;">📄</div>
+          <p><strong>拖放PDF檔案到此處</strong></p>
+          <p>或點擊選擇檔案</p>
+          <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;">
+          <button class="btn btn-primary" onclick="document.getElementById('pdfFileInput').click()">
+            📁 選擇PDF檔案
+          </button>
+        </div>
+        
+        <!-- 檔案列表 -->
+        <ul class="file-list" id="pdfFileList">
+          <li data-file="預設PDF" data-url="./data_scr/pdfs/v1_chapter1.pdf">
+            <span class="file-icon">📄</span>
+            <span>預設範例：chapter1 Scratch介紹</span>
+          </li>
+          <!-- 已上傳檔案會動態添加 -->
+        </ul>
+        
+        <!-- 控制按鈕 -->
+        <div class="pdf-controls">
+          <div class="controls-row">
+            <button class="btn btn-primary" onclick="prevPage()">
+              <span>⬅️</span> 上一頁
+            </button>
+            <div class="page-info" id="pageInfo">第 1 頁 / 共 1 頁</div>
+            <button class="btn btn-primary" onclick="nextPage()">
+              <span>➡️</span> 下一頁
+            </button>
+          </div>
+          
+          <div class="controls-row">
+            <button class="btn btn-secondary" onclick="zoomOut()">
+              <span>🔍-</span> 縮小
+            </button>
+            <div class="zoom-info" id="zoomLevel">100%</div>
+            <button class="btn btn-secondary" onclick="zoomIn()">
+              <span>🔍+</span> 放大
+            </button>
+          </div>
+          
+          <button class="btn btn-success" onclick="resetZoom()">
+            <span>🔄</span> 重置縮放
+          </button>
+        </div>
+      </div>
+      
+      <!-- 右側PDF顯示區域 -->
+      <div class="pdf-canvas-container">
+        <canvas id="pdfCanvas"></canvas>
+        <div class="status-message" id="pdfStatus">
+          <p>請選擇或拖放PDF檔案</p>
+          <p><small>支援所有標準PDF格式檔案</small></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 影片播放器標籤頁 -->
+  <div id="video-tab" class="tab-content">
+    <div class="video-viewer">
+      <!-- 左側控制面板 -->
+      <div class="pdf-sidebar">
+        <h3>🎥 影片檔案列表</h3>
+        
+        <!-- 拖放區域 -->
+        <div class="drop-zone" id="videoDropZone">
+          <div style="font-size: 3em;">🎬</div>
+          <p><strong>拖放影片檔案到此處</strong></p>
+          <p>支援MP4、WebM、OGG格式</p>
+          <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+          <button class="btn btn-primary" onclick="document.getElementById('videoFileInput').click()">
+            📁 選擇影片檔案
+          </button>
+        </div>
+        
+        <!-- 檔案列表 -->
+        <ul class="file-list" id="videoFileList">
+          <li data-file="預設影片" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+            <span class="file-icon">🎬</span>
+            <span>預設範例：Big Buck Bunny</span>
+          </li>
+          <!-- 已上傳影片會動態添加 -->
+        </ul>
+        
+        <!-- 控制按鈕 -->
+        <div class="pdf-controls">
+          <div class="controls-row">
+            <button class="btn btn-primary" onclick="playVideo()">
+              <span>▶️</span> 播放
+            </button>
+            <button class="btn btn-secondary" onclick="pauseVideo()">
+              <span>⏸️</span> 暫停
+            </button>
+            <button class="btn btn-secondary" onclick="toggleMute()" id="muteBtn">
+              <span>🔊</span> 靜音
+            </button>
+          </div>
+          
+          <div style="margin-top: 15px;">
+            <input type="range" id="volumeSlider" min="0" max="100" value="100" 
+                   onchange="changeVolume(this.value)" style="width: 100%;">
+            <div style="text-align: center; margin-top: 8px;">
+              音量: <span id="volumeValue">100</span>%
+            </div>
+          </div>
+          
+          <button class="btn btn-success" onclick="fullscreenVideo()" style="margin-top: 15px;">
+            <span>📺</span> 全螢幕
+          </button>
+        </div>
+      </div>
+      
+      <!-- 右側影片播放區域 -->
+      <div class="video-player-container">
+        <video id="videoPlayer" controls>
+          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+          您的瀏覽器不支援影片播放
+        </video>
+        <div class="status-message" id="videoStatus">
+          請選擇或拖放影片檔案
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scratch教材整合標籤頁 -->
+  <div id="scratch-tab" class="tab-content">
+    <div class="scratch-integration">
+      <h2>🎨 Scratch 程式設計教材</h2>
+      <p>這裡整合了原先 Scratch 教材瀏覽器的所有功能，提供完整的學習路徑：</p>
+      
+      <div class="scratch-categories">
+        <div class="category-card" onclick="loadScratchPDF('beginner')">
+          <h4>🎯 初階入門</h4>
+          <p>基礎概念與操作</p>
+          <small>適合完全新手</small>
+        </div>
+        
+        <div class="category-card" onclick="loadScratchPDF('intermediate')">
+          <h4>🎮 中階應用</h4>
+          <p>遊戲與動畫設計</p>
+          <small>適合有基礎者</small>
+        </div>
+        
+        <div class="category-card" onclick="loadScratchPDF('advanced')">
+          <h4>🧩 進階技巧</h4>
+          <p>變數與函式應用</p>
+          <small>適合進階學習者</small>
+        </div>
+        
+        <div class="category-card" onclick="loadScratchPDF('project')">
+          <h4>🚀 專題實作</h4>
+          <p>完整專案開發</p>
+          <small>適合專題製作</small>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="btn btn-primary" onclick="switchTab('pdf')">
+          📄 前往PDF閱讀器
+        </button>
+        <p style="margin-top: 15px; color: #666;">
+          您可以在PDF閱讀器中查看所有Scratch教材
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- YouTube影片整合標籤頁 -->
+  <div id="youtube-tab" class="tab-content">
+    <div class="youtube-integration">
+      <h2>📺 YouTube 教學影片精選</h2>
+      <p>這裡整合了原先 YouTube 精選影片的所有內容：</p>
+      
+      <div class="youtube-videos">
+        <div class="youtube-card" onclick="loadYouTubeVideo('aCZPHX13ZnE')">
+          <div class="youtube-thumbnail">🎨</div>
+          <h4>Scratch動畫設計教學</h4>
+          <p>他花歸去馬蹄香</p>
+          <small>15:30 • Scratch教學</small>
+        </div>
+        
+        <div class="youtube-card" onclick="loadYouTubeVideo('Aql3YLDG2a8')">
+          <div class="youtube-thumbnail">⏰</div>
+          <h4>Scratch電子鐘設計</h4>
+          <p>動畫教學</p>
+          <small>12:45 • Scratch教學</small>
+        </div>
+        
+        <div class="youtube-card" onclick="loadYouTubeVideo('j_eMTP5-lcA')">
+          <div class="youtube-thumbnail">🧮</div>
+          <h4>Scratch計算器設計</h4>
+          <p>多功能電子計算器</p>
+          <small>18:20 • Scratch教學</small>
+        </div>
+        
+        <div class="youtube-card" onclick="loadYouTubeVideo('rHZhnBZwCCs')">
+          <div class="youtube-thumbnail">🪨</div>
+          <h4>地質動畫解析</h4>
+          <p>Geological V's rules</p>
+          <small>地質教學</small>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="btn btn-primary" onclick="switchToYouTubeTab()">
+          🎥 前往影片播放器
+        </button>
+        <p style="margin-top: 15px; color: #666;">
+          點擊上方影片卡片即可在影片播放器中觀看
+        </p>
+        
+        <div style="margin-top: 20px;">
+          <a href="https://www.youtube.com/@chday7919" target="_blank" class="btn btn-outline">
+            📺 前往YouTube頻道
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 檔案上傳標籤頁 -->
+  <div id="upload-tab" class="tab-content">
+    <div class="pdf-sidebar" style="max-width: 800px; margin: 0 auto;">
+      <h3>📤 批量檔案上傳</h3>
+      
+      <div class="drop-zone" id="multiDropZone" style="min-height: 300px;">
+        <div style="font-size: 4em;">📁</div>
+        <p><strong>拖放多個檔案到此處</strong></p>
+        <p>支援PDF、影片、圖片檔案</p>
+        <p class="file-types">📄 PDF檔案 | 🎬 影片檔案 | 🖼️ 圖片檔案</p>
+        <input type="file" id="multiFileInput" accept=".pdf,video/*,image/*" multiple style="display: none;">
+        <button class="btn btn-primary" onclick="document.getElementById('multiFileInput').click()">
+          📂 選擇多個檔案
+        </button>
+      </div>
+      
+      <div style="margin-top: 30px;">
+        <h4>📋 上傳檔案列表</h4>
+        <div id="uploadList" style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+          <p style="color: #666; text-align: center; padding: 20px;">尚未選擇檔案</p>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="processUploads()">
+            🚀 開始上傳
+          </button>
+          <button class="btn btn-secondary" onclick="clearUploadList()">
+            🗑️ 清空列表
+          </button>
+        </div>
+      </div>
+      
+      <div class="status-message" id="uploadStatus" style="margin-top: 20px;">
+        準備上傳檔案...
+      </div>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    <div class="navigation-buttons">
+      <a href="index.html" class="btn btn-primary">⬅️ 返回首頁</a>
+      <a href="viewer_geo.html" class="btn btn-secondary">🪨 地質教材</a>
+      <a href="resources.html" class="btn btn-secondary">🔗 推薦資源</a>
+      <a href="comments.html" class="btn btn-outline">💬 留言板</a>
+    </div>
+    
+    <div class="footer-info">
+      <p>&copy; 2025 CHDAY169 教材平台 | Created by chday169</p>
+      <p>📧 聯絡信箱：<a href="mailto:chday169@gmail.com">chday169@gmail.com</a> | 
+         📺 YouTube：<a href="https://www.youtube.com/@chday7919" target="_blank">@chday7919</a></p>
+      <p><small>🔧 本頁面已整合原先的 Scratch 教材瀏覽器和 YouTube 影片播放器</small></p>
+    </div>
+  </footer>
+
+  <script>
+    // ============ 通用功能 ============
+    // URL參數處理
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    // 標籤頁切換
+    function switchTab(tabName) {
+      // 移除所有active類
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.remove('active');
+      });
+      
+      // 添加active類到當前按鈕和對應內容
+      const tabBtn = document.querySelector(`[data-tab="${tabName}-tab"]`);
+      const tabContent = document.getElementById(`${tabName}-tab`);
+      
+      if (tabBtn && tabContent) {
+        tabBtn.classList.add('active');
+        tabContent.classList.add('active');
+        
+        // 更新麵包屑
+        const tabNames = {
+          'pdf': 'PDF閱讀器',
+          'video': '影片播放器',
+          'scratch': 'Scratch教材',
+          'youtube': 'YouTube影片',
+          'upload': '檔案上傳'
+        };
+        document.getElementById('current-tab-name').textContent = tabNames[tabName] || tabName;
+        
+        // 更新URL但不重新載入頁面
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    
+    // 初始化時根據URL參數切換標籤頁
+    document.addEventListener('DOMContentLoaded', function() {
+      if (tabParam) {
+        switchTab(tabParam);
+      }
+      
+      // 初始化PDF和影片
+      loadDefaultPDF();
+      loadDefaultVideo();
+    });
+
+    // ============ PDF閱讀器功能 ============
+    let currentPDF = null;
+    let currentPage = 1;
+    let totalPages = 1;
+    let scale = 1.5;
+    let uploadedPDFs = [];
+
+    function loadDefaultPDF() {
+      const defaultPDF = document.querySelector('#pdfFileList li[data-file="預設PDF"]');
+      if (defaultPDF) {
+        loadPDF(defaultPDF.getAttribute('data-url'), defaultPDF.textContent);
+      }
+    }
+
+    // PDF拖放功能
+    const pdfDropZone = document.getElementById('pdfDropZone');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+    const pdfFileList = document.getElementById('pdfFileList');
+
+    pdfDropZone.addEventListener('click', () => pdfFileInput.click());
+
+    pdfDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      pdfDropZone.classList.add('dragover');
+    });
+
+    pdfDropZone.addEventListener('dragleave', () => {
+      pdfDropZone.classList.remove('dragover');
+    });
+
+    pdfDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      pdfDropZone.classList.remove('dragover');
+      
+      const files = Array.from(e.dataTransfer.files);
+      files.forEach(file => {
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          handlePDFUpload(file);
+        }
+      });
+    });
+
+    pdfFileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      files.forEach(file => {
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          handlePDFUpload(file);
+        }
+      });
+    });
+
+    function handlePDFUpload(file) {
+      const fileId = 'pdf_' + Date.now();
+      const fileObj = {
+        id: fileId,
+        name: file.name,
+        file: file,
+        url: URL.createObjectURL(file)
+      };
+      
+      uploadedPDFs.push(fileObj);
+      
+      // 添加到檔案列表
+      const listItem = document.createElement('li');
+      listItem.innerHTML = `<span class="file-icon">📄</span><span>${file.name}</span>`;
+      listItem.setAttribute('data-file', file.name);
+      listItem.setAttribute('data-id', fileId);
+      listItem.addEventListener('click', () => loadPDF(fileObj.url, file.name));
+      
+      pdfFileList.appendChild(listItem);
+      
+      // 自動載入第一個上傳的PDF
+      if (uploadedPDFs.length === 1) {
+        loadPDF(fileObj.url, file.name);
+      }
+      
+      document.getElementById('pdfStatus').innerHTML = `<p><span class="loading"></span>已上傳: ${file.name}</p>`;
+    }
+
+    async function loadPDF(url, fileName) {
+      try {
+        document.getElementById('pdfStatus').innerHTML = '<p><span class="loading"></span>載入PDF中...</p>';
+        
+        const pdf = await pdfjsLib.getDocument(url).promise;
+        currentPDF = pdf;
+        totalPages = pdf.numPages;
+        currentPage = 1;
+        
+        await renderPage();
+        document.getElementById('pdfStatus').innerHTML = `<p>✅ 已載入: ${fileName}</p>`;
+        
+        // 更新檔案列表active狀態
+        document.querySelectorAll('#pdfFileList li').forEach(li => {
+          li.classList.remove('active');
+        });
+        document.querySelector(`#pdfFileList li[data-file="${fileName}"]`).classList.add('active');
+      } catch (error) {
+        document.getElementById('pdfStatus').innerHTML = `<p>❌ 載入PDF失敗: ${error.message}</p>`;
+      }
+    }
+
+    async function renderPage() {
+      if (!currentPDF) return;
+      
+      try {
+        const page = await currentPDF.getPage(currentPage);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({
+          canvasContext: ctx,
+          viewport: viewport
+        }).promise;
+        
+        document.getElementById('pageInfo').textContent = `第 ${currentPage} 頁 / 共 ${totalPages} 頁`;
+        document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
+      } catch (error) {
+        console.error('渲染頁面失敗:', error);
+      }
+    }
+
+    function prevPage() {
+      if (currentPDF && currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    }
+
+    function nextPage() {
+      if (currentPDF && currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+      }
+    }
+
+    function zoomIn() {
+      scale += 0.25;
+      if (currentPDF) renderPage();
+    }
+
+    function zoomOut() {
+      scale = Math.max(0.5, scale - 0.25);
+      if (currentPDF) renderPage();
+    }
+
+    function resetZoom() {
+      scale = 1.5;
+      if (currentPDF) renderPage();
+    }
+
+    // ============ 影片播放器功能 ============
+    const videoDropZone = document.getElementById('videoDropZone');
+    const videoFileInput = document.getElementById('videoFileInput');
+    const videoFileList = document.getElementById('videoFileList');
+    const videoPlayer = document.getElementById('videoPlayer');
+    let uploadedVideos = [];
+
+    function loadDefaultVideo() {
+      const defaultVideo = document.querySelector('#videoFileList li[data-file="預設影片"]');
+      if (defaultVideo) {
+        loadVideo(defaultVideo.getAttribute('data-url'), defaultVideo.textContent);
+      }
+    }
+
+    videoDropZone.addEventListener('click', () => videoFileInput.click());
+
+    videoDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      videoDropZone.classList.add('dragover');
+    });
+
+    videoDropZone.addEventListener('dragleave', () => {
+      videoDropZone.classList.remove('dragover');
+    });
+
+    videoDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      videoDropZone.classList.remove('dragover');
+      
+      const files = Array.from(e.dataTransfer.files);
+      files.forEach(file => {
+        if (file.type.startsWith('video/') || 
+            ['.mp4', '.webm', '.ogg', '.mov'].some(ext => file.name.endsWith(ext))) {
+          handleVideoUpload(file);
+        }
+      });
+    });
+
+    videoFileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      files.forEach(file => {
+        if (file.type.startsWith('video/') || 
+            ['.mp4', '.webm', '.ogg', '.mov'].some(ext => file.name.endsWith(ext))) {
+          handleVideoUpload(file);
+        }
+      });
+    });
+
+    function handleVideoUpload(file) {
+      const fileId = 'video_' + Date.now();
+      const fileObj = {
+        id: fileId,
+        name: file.name,
+        file: file,
+        url: URL.createObjectURL(file)
+      };
+      
+      uploadedVideos.push(fileObj);
+      
+      // 添加到檔案列表
+      const listItem = document.createElement('li');
+      listItem.innerHTML = `<span class="file-icon">🎬</span><span>${file.name}</span>`;
+      listItem.setAttribute('data-file', file.name);
+      listItem.setAttribute('data-id', fileId);
+      listItem.addEventListener('click', () => loadVideo(fileObj.url, file.name));
+      
+      videoFileList.appendChild(listItem);
+      
+      // 自動載入第一個上傳的影片
+      if (uploadedVideos.length === 1) {
+        loadVideo(fileObj.url, file.name);
+      }
+      
+      document.getElementById('videoStatus').innerHTML = `<span class="loading"></span>已上傳: ${file.name}`;
+    }
+
+    function loadVideo(url, fileName) {
+      videoPlayer.src = url;
+      videoPlayer.load();
+      document.getElementById('videoStatus').textContent = `✅ 已載入: ${fileName}`;
+      
+      // 更新檔案列表active狀態
+      document.querySelectorAll('#videoFileList li').forEach(li => {
+        li.classList.remove('active');
+      });
+      document.querySelector(`#videoFileList li[data-file="${fileName}"]`).classList.add('active');
+    }
+
+    function playVideo() {
+      videoPlayer.play();
+      document.getElementById('videoStatus').textContent = '▶️ 播放中...';
+    }
+
+    function pauseVideo() {
+      videoPlayer.pause();
+      document.getElementById('videoStatus').textContent = '⏸️ 已暫停';
+    }
+
+    function toggleMute() {
+      videoPlayer.muted = !videoPlayer.muted;
+      const muteBtn = document.getElementById('muteBtn');
+      muteBtn.innerHTML = videoPlayer.muted ? '<span>🔇</span> 取消靜音' : '<span>🔊</span> 靜音';
+    }
+
+    function changeVolume(value) {
+      videoPlayer.volume = value / 100;
+      document.getElementById('volumeValue').textContent = value;
+    }
+
+    function fullscreenVideo() {
+      const container = document.querySelector('.video-player-container');
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      }
+    }
+
+    // ============ Scratch整合功能 ============
+    function loadScratchPDF(level) {
+      switchTab('pdf');
+      
+      // 模擬載入對應難度的PDF
+      const levelNames = {
+        'beginner': '初階入門教材',
+        'intermediate': '中階應用教材',
+        'advanced': '進階技巧教材',
+        'project': '專題實作教材'
+      };
+      
+      document.getElementById('pdfStatus').innerHTML = `<p><span class="loading"></span>載入${levelNames[level]}...</p>`;
+      
+      // 這裡可以實際載入對應的PDF檔案
+      setTimeout(() => {
+        document.getElementById('pdfStatus').innerHTML = `<p>✅ 已載入${levelNames[level]}</p>
+        <p><small>請在左側選擇具體的教材檔案</small></p>`;
+      }, 1000);
+    }
+
+    // ============ YouTube整合功能 ============
+    function loadYouTubeVideo(videoId) {
+      switchTab('video');
+      
+      const videoUrls = {
+        'aCZPHX13ZnE': 'https://www.youtube.com/embed/aCZPHX13ZnE',
+        'Aql3YLDG2a8': 'https://www.youtube.com/embed/Aql3YLDG2a8',
+        'j_eMTP5-lcA': 'https://www.youtube.com/embed/j_eMTP5-lcA',
+        'rHZhnBZwCCs': 'https://www.youtube.com/embed/rHZhnBZwCCs'
+      };
+      
+      const videoTitles = {
+        'aCZPHX13ZnE': 'Scratch動畫設計教學：他花歸去馬蹄香',
+        'Aql3YLDG2a8': 'Scratch電子鐘設計動畫教學',
+        'j_eMTP5-lcA': 'Scratch多功能電子計算器設計動畫教學',
+        'rHZhnBZwCCs': '地質動畫解析：Geological V\'s rules 0001'
+      };
+      
+      const url = videoUrls[videoId];
+      const title = videoTitles[videoId];
+      
+      if (url) {
+        // 替換video元素為iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.width = '100%';
+        iframe.height = '500';
+        iframe.frameBorder = '0';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.title = title;
+        
+        const container = document.querySelector('.video-player-container');
+        const oldPlayer = document.getElementById('videoPlayer');
+        container.replaceChild(iframe, oldPlayer);
+        iframe.id = 'videoPlayer';
+        
+        document.getElementById('videoStatus').textContent = `📺 正在播放: ${title}`;
+      }
+    }
+
+    function switchToYouTubeTab() {
+      switchTab('video');
+      document.getElementById('videoStatus').textContent = '請選擇YouTube影片或上傳本地影片檔案';
+    }
+
+    // ============ 批量上傳功能 ============
+    const multiDropZone = document.getElementById('multiDropZone');
+    const multiFileInput = document.getElementById('multiFileInput');
+    const uploadList = document.getElementById('uploadList');
+    const uploadStatus = document.getElementById('uploadStatus');
+    let uploadQueue = [];
+
+    multiDropZone.addEventListener('click', () => multiFileInput.click());
+
+    multiDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      multiDropZone.classList.add('dragover');
+    });
+
+    multiDropZone.addEventListener('dragleave', () => {
+      multiDropZone.classList.remove('dragover');
+    });
+
+    multiDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      multiDropZone.classList.remove('dragover');
+      
+      const files = Array.from(e.dataTransfer.files);
+      addFilesToUploadQueue(files);
+    });
+
+    multiFileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      addFilesToUploadQueue(files);
+    });
+
+    function addFilesToUploadQueue(files) {
+      files.forEach(file => {
+        const fileType = getFileType(file);
+        if (!fileType) {
+          uploadStatus.innerHTML = `<span style="color: #dc3545;">❌ 不支援的檔案類型: ${file.name}</span>`;
+          return;
+        }
+        
+        const fileObj = {
+          id: 'file_' + Date.now() + Math.random(),
+          name: file.name,
+          size: formatFileSize(file.size),
+          type: fileType,
+          file: file,
+          status: 'pending'
+        };
+        
+        uploadQueue.push(fileObj);
+        updateUploadList();
+      });
+      
+      uploadStatus.innerHTML = `<span style="color: #28a745;">✅ 已添加 ${files.length} 個檔案到上傳佇列</span>`;
+    }
+
+    function getFileType(file) {
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        return 'pdf';
+      } else if (file.type.startsWith('video/')) {
+        return 'video';
+      } else if (file.type.startsWith('image/')) {
+        return 'image';
+      } else if (['.mp4', '.webm', '.ogg', '.mov'].some(ext => file.name.endsWith(ext))) {
+        return 'video';
+      } else if (['.jpg', '.jpeg', '.png', '.gif', '.bmp'].some(ext => file.name.endsWith(ext))) {
+        return 'image';
+      }
+      return null;
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function updateUploadList() {
+      uploadList.innerHTML = '';
+      
+      if (uploadQueue.length === 0) {
+        uploadList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">尚未選擇檔案</p>';
+        return;
+      }
+      
+      uploadQueue.forEach((fileObj, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = `
+          padding: 12px;
+          margin-bottom: 8px;
+          background: #f8f9fa;
+          border-radius: 6px;
+          border-left: 4px solid ${getStatusColor(fileObj.status)};
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        `;
+        
+        const icon = getFileIcon(fileObj.type);
+        
+        item.innerHTML = `
+          <div>
+            <div style="font-weight: bold;">${icon} ${fileObj.name}</div>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+              ${fileObj.size} • ${fileObj.type.toUpperCase()} • ${getStatusText(fileObj.status)}
+            </div>
+          </div>
+          <div>
+            <button onclick="removeFromQueue('${fileObj.id}')" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1.2rem;">
+              ×
+            </button>
+          </div>
+        `;
+        
+        uploadList.appendChild(item);
+      });
+    }
+
+    function getFileIcon(type) {
+      const icons = {
+        'pdf': '📄',
+        'video': '🎬',
+        'image': '🖼️'
+      };
+      return icons[type] || '📁';
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        'pending': '#ffc107',
+        'uploading': '#17a2b8',
+        'success': '#28a745',
+        'error': '#dc3545'
+      };
+      return colors[status] || '#6c757d';
+    }
+
+    function getStatusText(status) {
+      const texts = {
+        'pending': '等待上傳',
+        'uploading': '上傳中...',
+        'success': '上傳成功',
+        'error': '上傳失敗'
+      };
+      return texts[status] || '未知狀態';
+    }
+
+    function removeFromQueue(fileId) {
+      uploadQueue = uploadQueue.filter(file => file.id !== fileId);
+      updateUploadList();
+      uploadStatus.innerHTML = `<span style="color: #6c757d;">🗑️ 已從佇列中移除檔案</span>`;
+    }
+
+    function clearUploadList() {
+      uploadQueue = [];
+      updateUploadList();
+      uploadStatus.innerHTML = `<span style="color: #6c757d;">🗑️ 已清空上傳佇列</span>`;
+    }
+
+    async function processUploads() {
+      if (uploadQueue.length === 0) {
+        uploadStatus.innerHTML = `<span style="color: #dc3545;">❌ 上傳佇列為空</span>`;
+        return;
+      }
+      
+      uploadStatus.innerHTML = `<span class="loading"></span>開始處理 ${uploadQueue.length} 個檔案...`;
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < uploadQueue.length; i++) {
+        const fileObj = uploadQueue[i];
+        
+        // 更新狀態為上傳中
+        fileObj.status = 'uploading';
+        updateUploadList();
+        
+        try {
+          // 模擬上傳過程
+          await simulateUpload(fileObj);
+          
+          // 根據檔案類型處理
+          if (fileObj.type === 'pdf') {
+            handlePDFUpload(fileObj.file);
+          } else if (fileObj.type === 'video') {
+            handleVideoUpload(fileObj.file);
+          }
+          
+          fileObj.status = 'success';
+          successCount++;
+          
+          uploadStatus.innerHTML = `<span style="color: #28a745;">✅ 已上傳 ${i+1}/${uploadQueue.length}: ${fileObj.name}</span>`;
+          
+        } catch (error) {
+          fileObj.status = 'error';
+          errorCount++;
+          
+          uploadStatus.innerHTML = `<span style="color: #dc3545;">❌ 上傳失敗 ${i+1}/${uploadQueue.length}: ${fileObj.name}</span>`;
+        }
+        
+        updateUploadList();
+        
+        // 稍微延遲，讓使用者可以看到進度
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // 顯示最終結果
+      uploadStatus.innerHTML = `
+        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px;">
+          <strong>🎉 上傳完成！</strong><br>
+          成功: ${successCount} 個檔案<br>
+          失敗: ${errorCount} 個檔案<br>
+          總計: ${uploadQueue.length} 個檔案
+        </div>
+      `;
+    }
+
+    function simulateUpload(fileObj) {
+      return new Promise((resolve, reject) => {
+        // 模擬上傳延遲
+        const delay = Math.random() * 2000 + 1000; // 1-3秒
+        setTimeout(() => {
+          // 90%成功率
+          if (Math.random() < 0.9) {
+            resolve();
+          } else {
+            reject(new Error('模擬上傳失敗'));
+          }
+        }, delay);
+      });
+    }
+
+    // ============ 鍵盤快捷鍵 ============
+    document.addEventListener('keydown', (e) => {
+      // PDF快捷鍵
+      if (document.getElementById('pdf-tab').classList.contains('active')) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevPage();
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextPage();
+        if (e.key === '+' || e.key === '=') zoomIn();
+        if (e.key === '-' || e.key === '_') zoomOut();
+        if (e.key === '0') resetZoom();
+      }
+      
+      // 影片快捷鍵
+      if (document.getElementById('video-tab').classList.contains('active')) {
+        if (e.key === ' ' || e.key === 'k') {
+          e.preventDefault();
+          if (videoPlayer.paused) {
+            playVideo();
+          } else {
+            pauseVideo();
+          }
+        }
+        if (e.key === 'm' || e.key === 'M') {
+          toggleMute();
+        }
+        if (e.key === 'f' || e.key === 'F') {
+          fullscreenVideo();
+        }
+      }
+    });
+    
+    // 自動切換到對應標籤頁的提示
+    window.addEventListener('load', function() {
+      // 如果從舊頁面跳轉過來，顯示歡迎訊息
+      if (document.referrer.includes('viewer_scr.html') || 
+          document.referrer.includes('youtube-videos.html')) {
+        setTimeout(() => {
+          alert('🎉 歡迎使用整合版多媒體教材中心！\n\n所有PDF和影片功能都已整合在此頁面。');
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
