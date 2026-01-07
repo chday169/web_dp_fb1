@@ -1,0 +1,75 @@
+<!-- manifest.json -->
+[
+  {
+    "id": "chapter0",
+    "title": "chapter0第一冊Scratch創意程式設計入門篇導讀 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter0.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter1",
+    "title": "節錄版chapter1Scratch程式語言介紹 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter1.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter2",
+    "title": "節錄版chapter2Scratch及TurboWarp下載安裝 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter2.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter3",
+    "title": "節錄版chapter3Scratch主要積木構件介紹 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter3.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter4",
+    "title": "節錄版chapter4建立Scratch或TurboWarp專案 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter4.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter5",
+    "title": "節錄版chapter5造型及背景修圖工具 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter5.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter6",
+    "title": "節錄版chapter6畫筆顏色及封閉區域填充顏色 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter6.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter7",
+    "title": "節錄版Chapter7圖像組合及角色創建 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter7.pdf",
+    "views": 0,
+    "likes": 0
+  },
+  {
+    "id": "v1_chapter8",
+    "title": "節錄版chapter8舞台選取及角色選擇 PDF",
+    "category": "V1A",
+    "url": "./data_scr/pdfs/v1_chapter8.pdf",
+    "views": 0,
+    "likes": 0
+      }
+]
